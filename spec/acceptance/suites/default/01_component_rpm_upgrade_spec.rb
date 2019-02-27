@@ -74,7 +74,15 @@ describe 'simp-adapter in RPM upgrade/downgrade' do
 
       context 'Module RPM downgrade' do
         it 'should downgrade cleanly' do
-          on(host, "yum downgrade #{package1} -y")
+          if fips_enabled(host) && (host.host_hash[:platform] =~ /el-6/)
+            # On el6, yum downgrade does not work in FIPS mode.  This OS bug
+            # is unlikely to be fixed, so do the operations a user would have
+            # to do to affect a downgrade
+            on(host, 'yum erase pupmod-simp-beakertest -y')
+            on(host, "yum install #{package1} -y")
+          else
+            on(host, "yum downgrade #{package1} -y")
+          end
         end
 
         it "should update the repo's master branch with the older version" do
