@@ -5,6 +5,12 @@ require 'spec_helper_acceptance'
 
 test_name 'simp-adapter upgrade operations'
 
+# This test requires an old version of the simp-adapter which is only
+# available in a legacy repo that supports EL < 8.
+upgrade_hosts = hosts.select do |host|
+   fact_on(host, 'operatingsystemmajrelease').to_s < '8'
+end
+
 describe 'simp-adapter upgrade operations' do
   let(:old_adapter_config_file) { '/etc/simp/adapter_config.yaml' }
   let(:new_adapter_config_file) { '/etc/simp/adapter_conf.yaml' }
@@ -19,16 +25,16 @@ describe 'simp-adapter upgrade operations' do
     sslverify=0
     REPO
 
-    hosts.each do |host|
+    upgrade_hosts.each do |host|
       create_remote_file(host, '/etc/yum.repos.d/simp_legacy.repo', legacy_repo)
     end
 
     step '[prep] Configure yum for upstream SIMP repos'
-    hosts.each { |host| set_up_simp_repos(host) }
-    on(hosts, "yum clean all; yum makecache")
+    upgrade_hosts.each { |host| set_up_simp_repos(host) }
+    on(upgrade_hosts, "yum clean all; yum makecache")
   end
 
-  hosts.each do |host|
+  upgrade_hosts.each do |host|
     context "Upgrading simp-adapter from version <= 0.1.1 on #{host.hostname}" do
       before :each do
          step '[prep] Revert to old version of simp-adapter'

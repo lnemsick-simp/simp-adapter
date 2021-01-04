@@ -10,11 +10,10 @@
 # Release       Puppet   Ruby    EOL
 # SIMP 6.4      5.5      2.4.10  TBD
 # PE 2018.1     5.5      2.4.10  2021-01 (LTS overlap)
-# PE 2019.8     6.16     2.5.7   2021-11 (LTS)
+# PE 2019.8     6.18     2.5.7   2022-12 (LTS)
 ---
 
 stages:
-  - 'sanity'
   - 'validation'
   - 'acceptance'
   - 'compliance'
@@ -248,10 +247,10 @@ variables:
 # Pipeline / testing matrix
 #=======================================================================
 
-sanity_checks:
+releng_checks:
   <<: *pup_5
   <<: *setup_bundler_env
-  stage: 'sanity'
+  stage: 'validation'
   tags: ['docker']
   script:
     - 'if `hash apt-get`; then apt-get update; fi'

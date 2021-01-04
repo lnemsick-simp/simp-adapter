@@ -17,25 +17,18 @@ describe 'simp-adapter' do
   context 'Initial test prep on each host' do
     specify do
       step '[prep] Install OS packages'
-      yum_packages = ['createrepo','yum-utils']
-      cmd = yum_packages.map{|pkg| "puppet resource package #{pkg} ensure=installed" }.join(' && ')
-      on(hosts,cmd)
-
-      result = on(hosts[0], 'cat /etc/oracle-release', :accept_all_exit_codes => true)
-      if result.exit_code == 0
-        # problem with OEL repos...need optional repos enabled in order
-        # for all the rvm build dependencies to resolve
-        on(hosts, 'yum-config-manager --enable ol7_optional_latest')
+      hosts.each do |host|
+        host.install_package('createrepo')
       end
 
-      step '[prep] Copy pre-built simp-adapter RPMs to hosts'
+      step '[prep] Copy pre-built simp-adapter RPM to hosts'
       on(hosts, "mkdir -p #{local_yum_repo}")
       dist_dir = File.expand_path(File.join(File.dirname(__FILE__), '..','..', '..', '..', 'dist'))
       rpms = Dir.glob(File.join(dist_dir, '*noarch.rpm'))
       puts "Local simp-adapter RPMs: #{rpms}"
       expect( rpms.size ).to eq 1
       hosts.each do |host|
-        rpms.each{|rpm| scp_to(host, rpm, local_yum_repo) }
+        rpms.each{ |rpm| scp_to(host, rpm, local_yum_repo) }
       end
 
       step '[prep] Copy pre-built test RPMs to hosts'
@@ -192,6 +185,13 @@ repo_gpgcheck=0
         end
 
         it 'should not modify the central repo for the module' do
+          # When dnf is used in a package uninstall (EL > 7), it will also
+          # remove all otherwise unused dependencies of a package by default.
+          # So, removal of pupmod-simp-beakertest will result in removal of
+          # simp-adapter and git packages as well. Since we need git for
+          # follow-on checks, make sure it is installed.
+          host.install_package('git')
+
           # verify master branch is intact
           compare_to_repo_branch(host, '/root/simp-beakertest-save', mod_repo_url, 'master')
 
